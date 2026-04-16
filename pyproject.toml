@@ -7,10 +7,17 @@ authors = [
     { name = "Kali Munro", email = "km00151@mix.wvu.edu" }
 ]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "altair>=6.0.0",
+    "duckdb>=1.5.2",
+    "numpy>=2.4.4",
+    "pandas>=3.0.2",
+    "polars>=1.39.3",
+    "pyarrow>=23.0.1",
+]
 
 [project.scripts]
-wvu-ieng-331-m2-1 = "wvu_ieng_331_m2_1:main"
+wvu-ieng-331-m2-1 = "wvu_ieng_331_m2_1.pipeline:main"
 
 [build-system]
 requires = ["uv_build>=0.10.8,<0.11.0"]

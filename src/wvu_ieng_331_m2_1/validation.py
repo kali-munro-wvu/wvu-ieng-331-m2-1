@@ -166,8 +166,8 @@ def validate_no_nulls(df: pl.DataFrame, columns: list[str]) -> None:
 
 
 ## What this does
-# Ensures queries return data
-# Checks for missing values in key columns
-# Stops pipeline early if data is bad
-
-# rubric: 'validation layer runs before analysis'
+# Checks that query results are not empty
+# Checks selected columns for null values when needed
+# Validates the DuckDB database before analysis starts
+# Confirms required tables, key columns, dates, and row counts are present
+# Logs warnings or errors when validation finds problems 

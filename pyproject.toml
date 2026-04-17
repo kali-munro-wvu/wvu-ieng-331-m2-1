@@ -1,15 +1,17 @@
 [project]
 name = "wvu-ieng-331-m2-1"
 version = "0.1.0"
-description = "Add your description here"
+description = "Automated Python pipeline for analyzing the Olist dataset. Accepts CLI parameters for date range and seller state filtering, runs SQL-based analysis, and produces CSV, Parquet, and HTML outputs."
 readme = "README.md"
-authors = [
-    { name = "Kali Munro", email = "km00151@mix.wvu.edu" }
-]
 requires-python = ">=3.13"
+authors = [
+  { name = "Kali Munro", email = "km00151@mix.wvu.edu" },
+  { name = "Genna Eline", email = "gre00008@mix.wvu.edu" },
+  { name = "Morgan Ennis", email = "mee00016@mix.wvu.edu" },
+]
 dependencies = [
     "altair>=6.0.0",
-    "duckdb>=1.5.2",
+    "duckdb>=1.4.0",
     "loguru>=0.7.2",
     "numpy>=2.4.4",
     "pandas>=3.0.2",

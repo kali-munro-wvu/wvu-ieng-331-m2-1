@@ -6,10 +6,11 @@ readme = "README.md"
 authors = [
     { name = "Kali Munro", email = "km00151@mix.wvu.edu" }
 ]
-requires-python = ">=3.14"
+requires-python = ">=3.13"
 dependencies = [
     "altair>=6.0.0",
     "duckdb>=1.5.2",
+    "loguru>=0.7.2",
     "numpy>=2.4.4",
     "pandas>=3.0.2",
     "polars>=1.39.3",

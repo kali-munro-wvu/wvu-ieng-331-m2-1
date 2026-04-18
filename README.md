@@ -49,3 +49,9 @@ The pipeline runs the following checks via `validate_database()` in `validation.
 | Row count threshold | orders, order_items, and customers each have at least 1,000 rows | WARNING logged, pipeline continues |
 | Empty results | Query results are not empty after filters are applied | ERROR raised, pipeline halts |
 
+## Analysis Summary
+
+This pipline carries forward two analytical views from Milestone 1 and makes them reusable through Python and command-line parameters.
+The first analysis is the seller scorecard. This ouput is meant to summarize seller performance using the existing seller scorecard SQL file. The pipeline can filter the analysis by '--start-date' and '--seller-state', which makes it possible to return the same logic on different slices of the Olist dataset without rewriting the query. The summary-level results are written to 'summary.csv' and are also used to generate the visualization in 'chart.html'.
+The second analysis is the ABC classification output. This analysis classifies products based on their contribution to overall revenue, which helps identify the highest-impact products. The detailed results are written to 'detail.parquet', which keeps the output efficient while preserving the full dataset structure.
+Together, these outputs make the original Milestone 1 analysis more practical because the team can rerun the same work with different filters, save structured outputs, and use the results in later reporting steps.

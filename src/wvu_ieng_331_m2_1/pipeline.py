@@ -146,10 +146,10 @@ def main() -> None:
 
     # Step 2: Run queries with CLI parameters applied
     logger.info("Querying seller scorecard...")
-seller_df = get_seller_scorecard(args.start_date, args.seller_state, args.end_date)
+    seller_df = get_seller_scorecard(args.start_date, args.seller_state, args.end_date)
 
     logger.info("Querying ABC classification...")
-    abc_df = get_abc_classification(args.start_date)
+    abc_df = get_abc_classification(args.start_date, args.end_date)
 
     # Step 3: Validate that query results are not empty
     logger.info("Validating query results...")

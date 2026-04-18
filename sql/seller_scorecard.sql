@@ -2,11 +2,13 @@
 -- SELLER SCORECARD
 -- Calculates per-seller performance metrics including total
 -- items sold, revenue, and average review score.
--- Filterable by order start date ($1) and seller state ($2).
+-- Filterable by order start date ($1), seller state ($2),
+-- and order end date ($3).
 --
 -- Parameters:
 --   $1: start_date (TIMESTAMP or NULL) — filters orders on or after this date
 --   $2: seller_state (VARCHAR or NULL) — filters sellers by state code (e.g. 'SP')
+--   $3: end_date (TIMESTAMP or NULL) — filters orders on or before this date
 --
 -- Returns one row per seller.
 -- =========================================================
@@ -44,7 +46,9 @@ LEFT JOIN order_reviews r
 
 -- $1: optional start date filter — NULL means no date filter applied
 -- $2: optional seller state filter — NULL means all states included
+-- $3: optional end date filter — NULL means no upper date limit applied
 WHERE ($1 IS NULL OR o.order_purchase_timestamp >= $1::TIMESTAMP)
+  AND ($3 IS NULL OR o.order_purchase_timestamp <= $3::TIMESTAMP)
   AND ($2 IS NULL OR s.seller_state = $2)
 
 GROUP BY

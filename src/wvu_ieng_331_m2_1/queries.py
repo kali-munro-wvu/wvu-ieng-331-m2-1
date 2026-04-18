@@ -96,6 +96,7 @@ def run_query(sql_file: str, params: tuple = (), db_path: Path = DATA_PATH) -> p
 def get_seller_scorecard(
     start_date: str | None,
     state: str | None,
+    end_date: str | None = None,
     db_path: Path = DATA_PATH,
 ) -> pl.DataFrame:
     """Retrieve seller scorecard metrics from the database.
@@ -116,8 +117,7 @@ def get_seller_scorecard(
         seller performance metrics.
     """
     logger.info(f"Fetching seller scorecard (start_date={start_date}, state={state})")
-    return run_query("seller_scorecard.sql", (start_date, state), db_path)
-
+return run_query("seller_scorecard.sql", (start_date, state, end_date), db_path)
 
 def get_abc_classification(
     start_date: str | None,

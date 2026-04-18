@@ -24,10 +24,11 @@ def parse_args() -> argparse.Namespace:
     Returns:
         A Namespace object with attributes start_date, end_date,
         and seller_state.
+
+    Raises:
+        ValueError: If --start-date is after --end-date.
     """
-    parser = argparse.ArgumentParser(
-        description="Olist e-commerce analysis pipeline."
-    )
+    parser = argparse.ArgumentParser(description="Olist e-commerce analysis pipeline.")
     parser.add_argument(
         "--start-date",
         type=str,
@@ -46,7 +47,16 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Filter sellers by two-letter state code (e.g. SP). Default: all states.",
     )
-    return parser.parse_args()
+
+    args = parser.parse_args()
+
+    # Validate that start date is not after end date if both are provided
+    if args.start_date and args.end_date:
+        if args.start_date > args.end_date:
+            logger.error("--start-date cannot be after --end-date")
+            raise ValueError("--start-date cannot be after --end-date")
+
+    return args
 
 
 def save_outputs(seller_df: pl.DataFrame, abc_df: pl.DataFrame) -> None:

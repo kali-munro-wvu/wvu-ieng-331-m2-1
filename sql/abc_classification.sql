@@ -8,6 +8,8 @@
 -- Parameters:
 --   $1: start_date (TIMESTAMP or NULL) — filters orders on or after this date
 --       NULL means no date filter is applied.
+--   $2: end_date (TIMESTAMP or NULL) — filters orders on or before this date
+--       NULL means no upper date limit is applied.
 --
 -- Returns one row per product with its ABC class and cumulative
 -- revenue percentage.
@@ -34,7 +36,9 @@ WITH product_revenue AS (
         ON oi.order_id = o.order_id
 
     -- $1: optional start date filter — NULL means no date filter applied
+    -- $2: optional end date filter — NULL means no upper date limit applied
     WHERE ($1 IS NULL OR o.order_purchase_timestamp >= $1::TIMESTAMP)
+      AND ($2 IS NULL OR o.order_purchase_timestamp <= $2::TIMESTAMP)
 
     GROUP BY
         p.product_id,

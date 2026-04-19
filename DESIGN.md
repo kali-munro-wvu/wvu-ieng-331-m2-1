@@ -1,5 +1,8 @@
 # Design Rationale
 
+---
+This doument explains how the Milestone 2 pipeline is structured, how parameters move through the code, how SQL is executed, how validation and error handling work, and how the pipeline could be extended later. 
+
 ## Parameter Flow 
 
 - The pipeline begins in 'pipeline.main()', which serves as the entry point for the project. Inside 'main()', the first step is calling 'parse_args()' from pipeline.py'. That function uses 'argparse' to read command-line options such as '--start-date', '--end-date', and '--seller-state'.
@@ -38,3 +41,4 @@
 - If the Olist dataset grew to 10 million orders, the first part of the pipeline that would likely slow down most is the query execution and DataFrame conversion in 'queries.run_query()'. Right now, the workflow runs the query in DuckDB, fetches the results, and converts them into Polars DataFrame. That works well at the current project scale, but with a much larger dataset the cost of returning large results to Python would become more noticeable.
 - To adapt the pipeline, I would keep as much aggregation as possible inside DuckDB before returning results to Python. I would also be more selective about which results are exported to CSV versus Parquet, because Parquet is better for larger datasets. If needed, I would also reduce unnecessary conversions and only materialize the specific fields required for the final outputs.
 - If a third output format needed to be added, such as JSON API-style response, the best place to add it would be in 'save_outputs()' inside "pipeline.py'. That function already controls how the existing outputs are written, so it is the most natural place to extend the output layer. The query functions themselves would not need major changes unless the JSON format required a different level of aggregation or different columns. In most cases, I would only modify 'save_outputs()' and possibly add a small helper dunction to keep the output-writing logic organized. 
+

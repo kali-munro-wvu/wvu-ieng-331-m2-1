@@ -73,3 +73,11 @@ The pipeline creates the following files in the 'output/' directory each time it
   This is the detail-level output. It stores the ABC classification results in Parquet format, which is more efficient for larger datasets and preserves the structure of the full results better than CSV.
 - 'chart.html'
   This is an Altair chart exported as a self-contained HTML file. It provides a quick visual of the summary results and can be opened directly in a browser. 
+
+## Parameters
+
+| Parameter | Type | Default | Desfription |
+|-----------|------|---------|-------------|
+| '--start-date' | date string | 'None" | Optional lower bound for filtering the analysis. Expected format is 'YYYY-MM-DD'. |
+| '--end-date' | date string | 'None' | Optional upper bound for filtering the analysis. Expected format is 'YYYY-MM-DD'. |
+| '--seller-state' | string | 'None' | Optional seller state filter used to restrict the seller scorecard results to one state. |

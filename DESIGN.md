@@ -5,18 +5,49 @@ This doument explains how the Milestone 2 pipeline is structured, how parameters
 
 ## Parameter Flow 
 
-- The pipeline begins in 'pipeline.main()', which serves as the entry point for the project. Inside 'main()', the first step is calling 'parse_args()' from pipeline.py'. That function uses 'argparse' to read command-line options such as '--start-date', '--end-date', and '--seller-state'.
-- After the arguments are parsed, the values are stored in the 'args' object. From there, 'main()' passes the relevant parameter values into the query layer. For example, the seller scorecard flow sends the data and state filters into 'get_seller_scorecard()', while the ABC classification flow sends the date filter into 'get_abc_classification()'.
-- Those functions are defined in 'queries.py'. They do not contain the SQL directly. Instead, each one calls 'run_query()' and passes both the SQL filename and a tuple of Python parameter values. For example, 'get_seller_scorecard()' passes its values into 'run_query("seller_scorecard.sql", (start_date, state))'.
-- Inside 'run_query()', the code first calls 'load_sql()' to read the SQL text from the correct file in the 'sql/' directory. Then DuckDB executes that SQL with the parameter tuple. This means the command-line values travel from 'pipeline.parse_args()' to 'pipeline.main()', then into 'queries.get_seller_scorecard()' or queries.get_abc_classification()', and finally into 'queries.run_query()' where the SQL is executed.
+The pipeline begins in `pipeline.main()`, which serves as the entry point for the project. Inside `main()`, the first step is calling `parse_args()` from `pipeline.py`. That function uses `argparse` to read command-line options such as `--start-date`, `--end-date`, and `--seller-state`. Each argument is defined with `parser.add_argument()` and defaults to `None` if not provided by the user.
+
+- After the arguments are parsed, the values are stored in the `args` object as `args.start_date`, `args.end_date`, and `args.seller_state`. Before any queries run, `main()` calls `validate_database(DATA_PATH)` from `validation.py` to confirm the database is healthy. The CLI arguments are not used during validation — it always checks the full database regardless of filters. For example, the seller scorecard flow sends the data and state filters into 'get_seller_scorecard()', while the ABC classification flow sends the date filter into 'get_abc_classification()'.
+- From there, `main()` passes the relevant parameter values into the query layer. The seller scorecard flow calls `get_seller_scorecard(args.start_date, args.seller_state, args.end_date)`, while the ABC classification flow calls `get_abc_classification(args.start_date, args.end_date)`. Both functions are defined in `queries.py`. - Those functions do not contain SQL directly. Instead, each one calls `run_query()` and passes both the SQL filename and a tuple of Python parameter values. For example, `get_seller_scorecard()` calls `run_query("seller_scorecard.sql", (start_date, state, end_date), db_path)`.
+
+Inside `run_query()`, the code calls `load_sql()` to read the SQL text from the correct file in the `sql/` directory using `pathlib`. Then DuckDB executes that SQL with the parameter tuple bound to the `$1`, `$2`, `$3` placeholders. For example, when `--seller-state SP` is passed, `args.seller_state = "SP"` is passed as the second element of the tuple, binding to `$2` in the WHERE clause:
 - This structure keeps the parameter flow organized because the pipline is responsible for orchestration, while the queries module is responsible for SQL execution. 
+```sql
+AND ($2 IS NULL OR s.seller_state = $2)
+```
+
+Because `$2` is `"SP"` and not NULL, DuckDB filters results to only sellers in SP. This structure keeps parameter flow organized because `pipeline.py` is responsible for orchestration while `queries.py` is responsible for SQL execution.
 
 ## SQL Parameterization
 
-- One example of SQL parameterization in this project is the seller scorecard query. The SQL file lives in 'sql/seller_scorecard.sql', while the Python function that runs it is 'get_seller_scorecard()' in 'queries.py'.
-- The raw SQL file uses positional placeholders such as '$1' and '$2' instead of directly inserting values into the query string. In Pythong, 'get_seller_scorecard()' passes its parameter values into 'run_query()' as a tuple. Then 'run_query()' sends both the SQL text and the parameter tuple into 'conn.execute(query, params)'.
-- This is better than using f-string because parameterized queries are safer and cleaner. They reduce the risk of formatting errors and avoid mixing SQL logic with string-building logic in Python. They also make it easier to reuse the same query structure with different input values.
+One example of SQL parameterization in this project is the seller scorecard query. The SQL file lives in `sql/seller_scorecard.sql`, while the Python function that runs it is `get_seller_scorecard()` in `queries.py`.
+
+- The raw SQL file uses positional placeholders `$1`, `$2`, and `$3` instead of directly inserting values into the query string. The WHERE clause looks like this:
+
+```sql
+WHERE ($1 IS NULL OR o.order_purchase_timestamp >= $1::TIMESTAMP)
+  AND ($3 IS NULL OR o.order_purchase_timestamp <= $3::TIMESTAMP)
+  AND ($2 IS NULL OR s.seller_state = $2)
+```
+
+Each condition is written so that when the parameter is NULL, the filter is skipped entirely and all rows pass through. This is how running with no arguments produces the full unfiltered analysis.
+
+In Python, `load_sql()` reads the file using pathlib:
+```python
+path = SQL_DIR / filename
+return path.read_text()
+```
+
+Then `run_query()` executes it with the parameter tuple:
+```python
+df = conn.execute(query, params).fetchdf()
+```
+
+DuckDB binds the values in the tuple to `$1`, `$2`, `$3` in order before executing.
+
+- This is better than using f-string because parameterized queries are safer and cleaner. It prevents SQL injection — a malicious user could pass a value like `'; DROP TABLE orders; --` as a seller state and destroy the database. Parameterized queries prevent this because DuckDB treats the parameter values as data, never as executable SQL.They reduce the risk of formatting errors and avoid mixing SQL logic with string-building logic in Python. They also make it easier to reuse the same query structure with different input values.
 - Keeping SQL in separate '.sql' files instead of writing inline SQL in Python alos improves maintainability. It makes the Python code easier to read, because the query functions focus on loading and running the SQL rather than storing large query strings inside the source code. It also makes it easier to revise or test the SQL separately from the Python pipeline. 
+
 
 ## Validation Logic 
 
@@ -30,11 +61,35 @@ This doument explains how the Milestone 2 pipeline is structured, how parameters
 
 ## Error Handling 
 
-- One important 'try/except' block is in 'pipeline.mainI()'. This block catches 'FileNotFoundError', 'duckdb.Error', 'ValueError', and "OSError'. These exceptions were chosen intentionally instead if using a bare 'except:' because each one represents a different kind of failure the user might need to understand.
-- 'FileNotFoundError' is used when a required file, such as the DuckDB database, is missing. In that case, the pipeline logs an error message that clearly tells the user what file was not found. 'duckdb.Error' is used for SQL exection failures or database-related problems. This is important because it separates database problems from parameter issues or file-writing issues.
-- 'ValueError' is used for invalid input values or failed result-level validation, such as an empty DataFrame after filters are applied. 'OSError' is used when the pipeline cannot write output files like 'summary.csv', 'detail.parquet', or 'chart.html'.
-- A second important 'try/except' block is in 'queries.run_query()'. That function catches 'duckdb.Error' when DuckDB cannot execute the requested SQL file correctly. This makes the failure easier to trace because the log can identify which query file caused the issue.
-- If the code used a bare 'except:' instead, the user would get less specific feedback. Different errors would all look the same, which would make debugging harder and hide the real cause of the problem. 
+**Example 1: `duckdb.Error` in `run_query()` in `queries.py`**
+
+```python
+except duckdb.Error as exc:
+    logger.error(f"DuckDB query error in {sql_file}: {exc}")
+    raise
+```
+
+This try/except block lives inside `run_query()` in `queries.py`, which is the function responsible for connecting to DuckDB, loading the SQL file, and executing the query. Because this function handles all direct database interaction, it is the most important place to catch database-specific errors.
+
+We catch `duckdb.Error` specifically rather than a general `Exception` because it is the exact error type that DuckDB raises when something goes wrong at the query level — for example if a table referenced in the SQL does not exist, if a column name is misspelled, if the SQL has a syntax error, or if the database connection drops unexpectedly. By catching this specific type, the error message logged by loguru clearly identifies the failure as a database query problem and includes the name of the SQL file that caused it, which makes debugging much faster.
+
+After logging the error we re-raise it with `raise` so the exception continues to propagate up through the call stack. This means the pipeline halts and the user sees the full traceback rather than silently continuing with no output. If we used a bare `except:` instead of `except duckdb.Error`, we would also accidentally catch `KeyboardInterrupt` (triggered when the user presses Ctrl+C to cancel the program) and `SystemExit` (triggered by `sys.exit()`). Catching those would make the program impossible to cancel mid-run and would hide completely unrelated bugs under a generic error message, making the pipeline much harder to maintain and debug.
+
+---
+
+**Example 2: `OSError` in `save_outputs()` in `pipeline.py`**
+
+```python
+except OSError as exc:
+    logger.error(f"Failed to write output files: {exc}")
+    raise
+```
+
+This try/except block lives inside `save_outputs()` in `pipeline.py`, which is the function responsible for creating the output directory and writing all three output files — `summary.csv`, `detail.parquet`, and `chart.html`. Because this function performs all file system operations, it is the right place to catch file system errors.
+
+We catch `OSError` specifically because it is the error Python raises for operating system and file system problems. Common examples include not having write permission to the output directory, the disk being full, the file path being too long for the operating system, or the output directory failing to be created. By catching this specific type, the error message logged by loguru clearly identifies the failure as a file system problem rather than a query failure or a logic error in the analysis itself.
+
+Like the first example, we re-raise the exception after logging it so the pipeline halts cleanly and the user sees the full traceback. This is important because if `save_outputs()` fails silently, the user might think the pipeline completed successfully but find no output files, which would be confusing. If we used a bare `except:` instead of `except OSError`, we would mask the real cause of the failure entirely. The user would have no way to tell whether the problem was a permissions issue, a full disk, or something else — and fixing the problem would require guessing rather than reading a clear error message.
 
 ## Scaling & Adaptation
 

@@ -78,6 +78,6 @@ The pipeline creates the following files in the 'output/' directory each time it
 
 | Parameter | Type | Default | Desfription |
 |-----------|------|---------|-------------|
-| '--start-date' | date string | 'None" | Optional lower bound for filtering the analysis. Expected format is 'YYYY-MM-DD'. |
+| '--start-date' | date string | 'None' | Optional lower bound for filtering the analysis. Expected format is 'YYYY-MM-DD'. |
 | '--end-date' | date string | 'None' | Optional upper bound for filtering the analysis. Expected format is 'YYYY-MM-DD'. |
 | '--seller-state' | string | 'None' | Optional seller state filter used to restrict the seller scorecard results to one state. |

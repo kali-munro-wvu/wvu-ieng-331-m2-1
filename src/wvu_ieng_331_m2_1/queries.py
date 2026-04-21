@@ -117,7 +117,7 @@ def get_seller_scorecard(
         seller performance metrics.
     """
     logger.info(f"Fetching seller scorecard (start_date={start_date}, state={state})")
-return run_query("seller_scorecard.sql", (start_date, state, end_date), db_path)
+    return run_query("seller_scorecard.sql", (start_date, state, end_date), db_path)
 
 def get_abc_classification(
     start_date: str | None,
@@ -140,7 +140,7 @@ def get_abc_classification(
         class and cumulative revenue percentage.
     """
     logger.info(f"Fetching ABC classification (start_date={start_date})")
-return run_query("abc_classification.sql", (start_date, end_date), db_path)
+    return run_query("abc_classification.sql", (start_date, end_date), db_path)
 
 # --- What this module does ---
 # load_sql:                Reads a SQL file from the sql/ directory

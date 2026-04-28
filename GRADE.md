@@ -1,107 +1,92 @@
-# Milestone 2 Grade
+# Milestone 2 Grade (Regrade)
 
 **Team 1** — Kali Munro, Genna Eline, Morgan Ennis
 **Repo**: kali-munro-wvu/wvu-ieng-331-m2-1
 
+*This grade reflects the resubmitted work. Original score was 18/24.*
+*Revision commit: "Update queries.py - FIXED PIPELINE SPACING ERROR"*
+
 | Criterion | Score | Max |
 |-----------|------:|----:|
-| Pipeline Functionality | 2 | 6 |
+| Pipeline Functionality | 6 | 6 |
 | Parameterization & Configuration | 6 | 6 |
-| Code Quality | 4 | 6 |
+| Code Quality | 6 | 6 |
 | Project Structure & M1 Integration | 3 | 3 |
 | Design Rationale (DESIGN.md) | 3 | 3 |
-| **Total** | **18** | **24** |
+| **Total** | **24** | **24** |
 
 ---
 
-## Pipeline Functionality (2/6)
+## Pipeline Functionality (6/6)
 
-**Critical bug — pipeline does not run as submitted.**
+The single blocker from the original submission — two `return` statements at column 0 in `queries.py` causing a `SyntaxError` on import — has been corrected. Both lines (end of `get_seller_scorecard` and `get_abc_classification`) now have the correct 4-space indentation.
 
-`src/wvu_ieng_331_m2_1/queries.py` has two `return` statements at column 0 (outside their enclosing functions), causing a `SyntaxError` on import:
+**Default run (olist.duckdb):** Completes successfully. Produces all three outputs:
+- `summary.csv` — 3,095 sellers, 233 KB
+- `detail.parquet` — 32,951 products, 703 KB
+- `chart.html` — interactive Altair bar chart, 647 KB
 
-```
-File ".../queries.py", line 120
-    return run_query("seller_scorecard.sql", ...)
-    ^
-SyntaxError: 'return' outside function
-```
+**Parameterized run (`--start-date 2024-01-01 --end-date 2024-06-01 --seller-state SP`):** Completes successfully. Filters demonstrably change output — seller_scorecard drops from 3,095 to 392 rows; abc_classification drops from 32,951 to 3,068 rows. All three outputs re-written correctly.
 
-This occurs on line 120 (end of `get_seller_scorecard`) and line 143 (end of `get_abc_classification`). Both lines are missing 4 spaces of indentation.
-
-**After a 2-character-per-line indentation fix:**
-- `uv sync`: clean, all dependencies resolved.
-- Default run: completes successfully; produces all 3 outputs (summary.csv 228 KB, detail.parquet 690 KB, chart.html 633 KB).
-- Param run (`--start-date 2024-01-01 --end-date 2024-06-01 --seller-state SP`): produces filtered results (392 sellers, 3068 products) — params demonstrably change SQL output.
-- Holdout test (olist_extended.duckdb): runs without modification; picks up extended data (128 028 orders vs 99 441); all 3 outputs produced. Validation correctly flags future-dated record (2026-03-17 max date).
-
-Score is **2** (partially works; the syntax error is the sole blocker; outputs are otherwise complete and correct).
+**Holdout test (olist_extended.duckdb, 128,028 orders vs 99,441):** Runs without modification, picks up extended data in validation (128,028 orders / 144,672 order_items confirmed in logs). All three outputs produced.
 
 ---
 
 ## Parameterization & Configuration (6/6)
 
-- **3 argparse params**: `--start-date`, `--end-date`, `--seller-state`, all documented with types and defaults in `parse_args()`.
-- **Defaults = full analysis**: all three default to `None`, producing unfiltered results.
-- **Params flow to SQL**: values are passed as a positional tuple to `conn.execute(query, params)`, binding to `$1`/`$2`/`$3` in both SQL files. Changing params demonstrably changes row counts (verified above).
-- **Validation layer is substantive** (`validate_database()` in `validation.py`):
-  1. Checks all 9 expected tables exist.
-  2. Checks 4 key columns (order_id, customer_id, product_id, seller_id) are not entirely NULL.
-  3. Checks date range is non-empty and not future-dated.
-  4. Checks orders, order_items, and customers each exceed 1,000 rows.
-  5. `validate_not_empty()` checks query results post-filter, raising `ValueError` on empty result.
-- All validation findings logged via loguru at appropriate WARNING/INFO/ERROR levels.
+No changes from original submission; already full marks. Three argparse parameters (`--start-date`, `--end-date`, `--seller-state`), all with `None` defaults for unfiltered analysis. Values flow through to SQL `$1`/`$2`/`$3` placeholders. Cross-parameter validation (start > end raises `ValueError`). Substantive `validate_database()` and `validate_not_empty()` checks. No deductions.
 
 ---
 
-## Code Quality (4/6)
+## Code Quality (6/6)
 
-**Strengths:**
-- All functions have full Google-style docstrings (Args, Returns, Raises).
-- All function signatures are fully type-hinted, including `str | None` union types and `duckdb.DuckDBPyConnection | None`.
-- No `print()` statements; loguru used consistently for all log levels.
-- `pathlib.Path` used throughout for all file and directory operations.
-- Specific exception handling: `duckdb.Error`, `OSError`, `FileNotFoundError`, `ValueError` — no bare `except:` clauses.
-- `finally` block in `run_query()` and `validate_database()` ensures connections are always closed.
-- Clean module separation; SQL kept in `.sql` files, not embedded in Python strings.
+With the syntax error resolved, no code quality deductions remain. All quality criteria are met:
 
-**Deductions:**
-- The indentation bug on lines 120 and 143 of `queries.py` is a straightforward Python error that should have been caught by any linter or test run before submission. It renders the package completely unimportable as shipped. This is a code-quality failure that prevents execution.
+- **Type hints**: All function signatures fully annotated, including `str | None` union types and `duckdb.DuckDBPyConnection | None`.
+- **Docstrings**: Google-style with Args, Returns, and Raises on every function across all three modules.
+- **Logging**: `loguru` used consistently at INFO/WARNING/ERROR levels; zero `print()` statements.
+- **Path handling**: `pathlib.Path` throughout for all file and directory operations.
+- **Exception handling**: `duckdb.Error`, `OSError`, `FileNotFoundError`, `ValueError` — no bare `except:` clauses; `finally` blocks ensure connections are always closed.
+- **SQL separation**: All SQL in `.sql` files; no embedded query strings in Python.
 
-Score is **4** (reasonable quality, well-annotated, but the unguarded syntax error represents a significant quality gap).
+The original deduction was solely for the indentation bug. That bug is fixed; no other quality gaps were present.
 
 ---
 
 ## Project Structure & M1 Integration (3/3)
 
-All required files present and correct:
+Unchanged from original; full marks retained.
 
 | File | Present | Notes |
 |------|---------|-------|
-| `pyproject.toml` | Yes | Valid; `[project.scripts]` entry `wvu-ieng-331-m2-1 = "wvu_ieng_331_m2_1.pipeline:main"`; uv_build backend |
+| `pyproject.toml` | Yes | Valid; `[project.scripts]` entry correct; `uv_build` backend |
 | `uv.lock` | Yes | Committed |
 | `.python-version` | Yes | Present |
-| `.gitignore` | Yes | Comprehensive; correctly ignores `data/*.duckdb`, `output/`, `.venv/`, `__pycache__/` |
+| `.gitignore` | Yes | Correctly ignores `data/*.duckdb`, `output/`, `.venv/`, `__pycache__/` |
 | `src/wvu_ieng_331_m2_1/pipeline.py` | Yes | |
 | `src/wvu_ieng_331_m2_1/queries.py` | Yes | |
 | `src/wvu_ieng_331_m2_1/validation.py` | Yes | |
 | `sql/seller_scorecard.sql` | Yes | Uses `$1`, `$2`, `$3` placeholders |
 | `sql/abc_classification.sql` | Yes | Uses `$1`, `$2` placeholders |
-| `README.md` | Yes | All sections: How to Run, Parameters, Outputs, Validation Checks, Analysis Summary, Limitations |
-| `DESIGN.md` | Yes | All 5 sections |
+| `README.md` | Yes | All sections present |
+| `DESIGN.md` | Yes | All 5 sections present |
 
 ---
 
 ## Design Rationale (3/3)
 
-All 5 sections present, specific, and accurately cross-referenced to real code:
+Unchanged from original; full marks retained. All 5 sections present (Parameter Flow, SQL Parameterization, Validation Logic, Error Handling, Scaling & Adaptation), all cross-referenced to real code that was verified to exist. No fabricated or stale references.
 
-| Section | Completeness | Code Reference Accuracy |
-|---------|-------------|------------------------|
-| Parameter Flow | Complete | Correctly traces `main()` → `parse_args()` → `get_seller_scorecard(args.start_date, args.seller_state, args.end_date)` → `run_query()` → SQL `$2` placeholder |
-| SQL Parameterization | Complete | Exact WHERE clause shown; explains NULL-passthrough pattern; explains injection safety; matches actual `seller_scorecard.sql` |
-| Validation Logic | Complete | Describes all 4 `validate_database()` checks by name and rationale; references `validate_not_empty()`; matches `validation.py` exactly |
-| Error Handling | Complete | Shows actual `except duckdb.Error` and `except OSError` blocks from `run_query()` and `save_outputs()`; explains why bare `except:` is avoided |
-| Scaling & Adaptation | Complete | References `queries.run_query()` and `save_outputs()` by name; discusses DuckDB-side aggregation and Parquet preference |
+---
 
-Function names cited in DESIGN.md all exist in the code as described. No fabricated or stale references found.
+## Late Penalty Adjustment
+
+This resubmission was received on or before 11:59 PM Wed Apr 22, 2026, in the **20% off improvement** tier per the resubmission policy. The penalty applies only to points earned beyond the original grade.
+
+| | Points |
+|---|---:|
+| Original score | 18 / 24 |
+| Regraded score | 24 / 24 |
+| Improvement | +6 |
+| Late penalty (20% × improvement) | -1.2 |
+| **Final score** | **22.8 / 24** |
